@@ -1,6 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <chrono>
+
 using namespace std;
 
 struct Jadwal {
@@ -18,7 +20,12 @@ struct Jadwal {
 
 void insertJadwal(Jadwal*& head, Jadwal*& tail, int id, string nama, 
                     string ruang, int mulai, int selesai, string tanggal, string status) {
-                    
+
+    if(cekKonflik(head, ruang, tanggal, mulai, selesai)) {
+        cout << "Gagal! Ada jadwal bentrok di ruangan " << ruang << " pada tanggal " << tanggal << "\n";
+        return;
+    }
+
     Jadwal* baru = new Jadwal;
     baru->idJadwal = id;
     baru->namaKegiatan = nama;
@@ -53,15 +60,32 @@ void updateJadwal(Jadwal* head, int id){
 
     while(temp != NULL){
         if(temp->idJadwal == id){
+            string namaBaru;
+            int mulaiBaru, selesaiBaru;
+
             cout << "Masukkan nama kegiatan baru: ";
-            cin >> temp->namaKegiatan;
-
+            cin >> namaBaru;
             cout << "Waktu mulai baru: ";
-            cin >> temp->waktuMulai;
-
+            cin >> mulaiBaru;
             cout << "Waktu selesai baru: ";
-            cin >> temp->waktuSelesai;
+            cin >> selesaiBaru;
 
+            int oldMulai = temp->waktuMulai;
+            int oldSelesai = temp->waktuSelesai;
+            
+            temp->waktuMulai = -1;
+            temp->waktuSelesai = -1;
+
+            if(cekKonflik(head, temp->idRuangan, temp->tanggal, mulaiBaru, selesaiBaru)) {
+                cout << "Update gagal! Waktu bentrok dengan jadwal lain.\n";
+                temp->waktuMulai = oldMulai;
+                temp->waktuSelesai = oldSelesai;
+            } else {
+                temp->namaKegiatan = namaBaru;
+                temp->waktuMulai = mulaiBaru;
+                temp->waktuSelesai = selesaiBaru;
+                cout << "Jadwal berhasil diupdate!\n";
+            }
             return;
         }
         temp = temp->next;
@@ -125,16 +149,23 @@ void simpanFile(Jadwal* head){
 
 void ambilFile(Jadwal*& head, Jadwal*& tail){
     ifstream file("jadwal.txt");
-    while(!file.eof()){
-        Jadwal* baru = new Jadwal;
+    
+    if(!file.is_open()){
+        return;
+    }
 
-        file >> baru->idJadwal
-             >> baru->namaKegiatan
-             >> baru->idRuangan
-             >> baru->waktuMulai
-             >> baru->waktuSelesai
-             >> baru->tanggal
-             >> baru->statusJadwal;
+    int id, mulai, selesai;
+    string nama, ruang, tanggal, status;
+
+    while(file >> id >> nama >> ruang >> mulai >> selesai >> tanggal >> status){
+        Jadwal* baru = new Jadwal;
+        baru->idJadwal = id;
+        baru->namaKegiatan = nama;
+        baru->idRuangan = ruang;
+        baru->waktuMulai = mulai;
+        baru->waktuSelesai = selesai;
+        baru->tanggal = tanggal;
+        baru->statusJadwal = status;
         baru->next = NULL;
 
         if(head == NULL){
@@ -151,6 +182,8 @@ int main(){
     Jadwal* head = NULL;
     Jadwal* tail = NULL;
     ambilFile(head, tail);
+
+    auto start_time = chrono::high_resolution_clock::now();
 
     int pilihan;
     do{
@@ -214,5 +247,11 @@ int main(){
             simpanFile(head);
         }
     } while(pilihan != 5);
+
+    auto end_time = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::milliseconds>(end_time - start_time);
+    
+    cout << "Waktu: " << duration.count() << " ms\n";
+    
     return 0;
 }

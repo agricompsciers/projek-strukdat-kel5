@@ -2,6 +2,8 @@
 #include <fstream>
 #include <string>
 #include <unordered_map> 
+#include <chrono>
+
 
 using namespace std;
 
@@ -18,7 +20,12 @@ struct Jadwal {
 
 void insertJadwal(unordered_map<int, Jadwal>& mapJadwal, int id, string nama, 
                     string ruang, int mulai, int selesai, string tanggal, string status) {
-                    
+
+    if(cekKonflik(mapJadwal, ruang, tanggal, mulai, selesai)) {
+        cout << "Gagal! Ada jadwal bentrok di ruangan " << ruang << " pada tanggal " << tanggal << "\n";
+        return;
+    }
+
     Jadwal baru;
     baru.idJadwal = id;
     baru.namaKegiatan = nama;
@@ -48,18 +55,33 @@ void searchRuang(const unordered_map<int, Jadwal>& mapJadwal, string ruang) {
 }
 
 void updateJadwal(unordered_map<int, Jadwal>& mapJadwal, int id){
-    
     if(mapJadwal.find(id) != mapJadwal.end()){
-        cout << "Masukkan nama kegiatan baru: ";
-        cin >> mapJadwal[id].namaKegiatan;
-
-        cout << "Waktu mulai baru: ";
-        cin >> mapJadwal[id].waktuMulai;
-
-        cout << "Waktu selesai baru: ";
-        cin >> mapJadwal[id].waktuSelesai;
+        string namaBaru;
+        int mulaiBaru, selesaiBaru;
         
-        cout << "Jadwal berhasil diupdate!\n";
+        cout << "Masukkan nama kegiatan baru: ";
+        cin >> namaBaru;
+        cout << "Waktu mulai baru: ";
+        cin >> mulaiBaru;
+        cout << "Waktu selesai baru: ";
+        cin >> selesaiBaru;
+
+        string ruang = mapJadwal[id].idRuangan;
+        string tanggal = mapJadwal[id].tanggal;
+
+        Jadwal backup = mapJadwal[id];
+        mapJadwal.erase(id);
+
+        if(cekKonflik(mapJadwal, ruang, tanggal, mulaiBaru, selesaiBaru)) {
+            cout << "Update gagal! Waktu bentrok dengan jadwal lain.\n";
+            mapJadwal[id] = backup;
+        } else {
+            backup.namaKegiatan = namaBaru;
+            backup.waktuMulai = mulaiBaru;
+            backup.waktuSelesai = selesaiBaru;
+            mapJadwal[id] = backup;
+            cout << "Jadwal berhasil diupdate!\n";
+        }
     } else {
         cout << "Jadwal tidak ditemukan\n";
     }
@@ -132,6 +154,8 @@ int main(){
     
     ambilFile(mapJadwal);
 
+    auto start_time = chrono::high_resolution_clock::now();
+
     int pilihan;
     do{
         cout << "\n==MENU==\n";
@@ -188,6 +212,11 @@ int main(){
             simpanFile(mapJadwal);
         }
     } while(pilihan != 5);
+
+    auto end_time = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::milliseconds>(end_time - start_time);
+    
+    cout << "Waktu: " << duration.count() << " ms\n";
     
     return 0;
 }
