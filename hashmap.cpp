@@ -18,6 +18,18 @@ struct Jadwal {
     string namaRuangan;
 };
 
+bool cekKonflik(const unordered_map<int, Jadwal>& mapJadwal, string ruang, string tanggal, int mulai, int selesai){
+    for(const auto& pair : mapJadwal){
+        const Jadwal& temp = pair.second;
+        if(temp.idRuangan == ruang && temp.tanggal == tanggal){
+            if(mulai < temp.waktuSelesai && selesai > temp.waktuMulai) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void insertJadwal(unordered_map<int, Jadwal>& mapJadwal, int id, string nama, 
                     string ruang, int mulai, int selesai, string tanggal, string status) {
 
@@ -54,18 +66,8 @@ void searchRuang(const unordered_map<int, Jadwal>& mapJadwal, string ruang) {
     }
 }
 
-void updateJadwal(unordered_map<int, Jadwal>& mapJadwal, int id){
+void updateJadwal(unordered_map<int, Jadwal>& mapJadwal, int id, string namaBaru, int mulaiBaru, int selesaiBaru){
     if(mapJadwal.find(id) != mapJadwal.end()){
-        string namaBaru;
-        int mulaiBaru, selesaiBaru;
-        
-        cout << "Masukkan nama kegiatan baru: ";
-        cin >> namaBaru;
-        cout << "Waktu mulai baru: ";
-        cin >> mulaiBaru;
-        cout << "Waktu selesai baru: ";
-        cin >> selesaiBaru;
-
         string ruang = mapJadwal[id].idRuangan;
         string tanggal = mapJadwal[id].tanggal;
 
@@ -94,18 +96,6 @@ void deleteJadwal(unordered_map<int, Jadwal>& mapJadwal, int id){
     } else {
         cout << "Jadwal tidak ditemukan\n";
     }
-}
-
-bool cekKonflik(const unordered_map<int, Jadwal>& mapJadwal, string ruang, string tanggal, int mulai, int selesai){
-    for(const auto& pair : mapJadwal){
-        const Jadwal& temp = pair.second;
-        if(temp.idRuangan == ruang && temp.tanggal == tanggal){
-            if(mulai < temp.waktuSelesai && selesai > temp.waktuMulai) {
-                return true;
-            }
-        }
-    }
-    return false;
 }
 
 void simpanFile(const unordered_map<int, Jadwal>& mapJadwal){
@@ -154,7 +144,7 @@ int main(){
     
     ambilFile(mapJadwal);
 
-    auto start_time = chrono::high_resolution_clock::now();
+    long long totalWaktu = 0;
 
     int pilihan;
     do{
@@ -188,35 +178,76 @@ int main(){
             cout << "STATUS: ";
             getline(cin, status);
 
+            auto start_op = chrono::high_resolution_clock::now();
+
             insertJadwal(mapJadwal, id, nama, ruang, mulai, selesai, tanggal, status);
             simpanFile(mapJadwal);
+
+            auto end_op = chrono::high_resolution_clock::now();
+            auto duration = chrono::duration_cast<chrono::microseconds>(end_op - start_op).count();
+            
+            cout << "Waktu Eksekusi Insert: " << duration << " us\n";
+            totalWaktu += duration;
         }
         else if(pilihan == 2) {
             string ruang;
             cout << "CARI RUANG: ";
             cin >> ruang;
+
+            auto start_op = chrono::high_resolution_clock::now();
+
             searchRuang(mapJadwal, ruang);
+
+            auto end_op = chrono::high_resolution_clock::now();
+            auto duration = chrono::duration_cast<chrono::microseconds>(end_op - start_op).count();
+            
+            cout << "Waktu Eksekusi Search: " << duration << " us\n";
+            totalWaktu += duration;
         }
         else if(pilihan ==3){
-            int id;
+            int id, mulaiBaru, selesaiBaru;
+            string namaBaru;
+
             cout << "ID JADWAL YANG INGIN DIUPDATE: ";
             cin >> id;
-            updateJadwal(mapJadwal, id);
+            cin.ignore();
+            cout << "Masukkan nama kegiatan baru: ";
+            getline(cin, namaBaru);
+            cout << "Waktu mulai baru: ";
+            cin >> mulaiBaru;
+            cout << "Waktu selesai baru: ";
+            cin >> selesaiBaru;
+
+            auto start_op = chrono::high_resolution_clock::now();
+
+            updateJadwal(mapJadwal, id, namaBaru, mulaiBaru, selesaiBaru);
             simpanFile(mapJadwal);
+
+            auto end_op = chrono::high_resolution_clock::now();
+            auto duration = chrono::duration_cast<chrono::microseconds>(end_op - start_op).count();
+            
+            cout << "Waktu Eksekusi Update: " << duration << " us\n";
+            totalWaktu += duration;
         }
         else if(pilihan == 4){
             int id;
             cout << "ID JADWAL YANG INGIN DIHAPUS: ";
             cin >> id;
+
+            auto start_op = chrono::high_resolution_clock::now();
+
             deleteJadwal(mapJadwal, id);
             simpanFile(mapJadwal);
+
+            auto end_op = chrono::high_resolution_clock::now();
+            auto duration = chrono::duration_cast<chrono::microseconds>(end_op - start_op).count();
+            
+            cout << "Waktu Eksekusi Hapus: " << duration << " us\n";
+            totalWaktu += duration;
         }
     } while(pilihan != 5);
 
-    auto end_time = chrono::high_resolution_clock::now();
-    auto duration = chrono::duration_cast<chrono::milliseconds>(end_time - start_time);
-    
-    cout << "Waktu: " << duration.count() << " ms\n";
+    cout << "\nTotal Waktu Algoritma Aktif: " << totalWaktu << " us\n";
     
     return 0;
 }
