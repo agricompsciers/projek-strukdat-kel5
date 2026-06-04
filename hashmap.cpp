@@ -4,7 +4,6 @@
 #include <unordered_map> 
 #include <chrono>
 
-
 using namespace std;
 
 struct Jadwal {
@@ -18,7 +17,7 @@ struct Jadwal {
     string namaRuangan;
 };
 
-bool cekKonflik(const unordered_map<int, Jadwal>& mapJadwal, string ruang, string tanggal, int mulai, int selesai){
+bool cekKonflik(const unordered_map<int, Jadwal>& mapJadwal, const string& ruang, const string& tanggal, int mulai, int selesai){
     for(const auto& pair : mapJadwal){
         const Jadwal& temp = pair.second;
         if(temp.idRuangan == ruang && temp.tanggal == tanggal){
@@ -30,8 +29,8 @@ bool cekKonflik(const unordered_map<int, Jadwal>& mapJadwal, string ruang, strin
     return false;
 }
 
-void insertJadwal(unordered_map<int, Jadwal>& mapJadwal, int id, string nama, 
-                    string ruang, int mulai, int selesai, string tanggal, string status) {
+void insertJadwal(unordered_map<int, Jadwal>& mapJadwal, int id, const string& nama, 
+                    const string& ruang, int mulai, int selesai, const string& tanggal, const string& status) {
 
     if(cekKonflik(mapJadwal, ruang, tanggal, mulai, selesai)) {
         cout << "Gagal! Ada jadwal bentrok di ruangan " << ruang << " pada tanggal " << tanggal << "\n";
@@ -50,7 +49,7 @@ void insertJadwal(unordered_map<int, Jadwal>& mapJadwal, int id, string nama,
     mapJadwal[id] = baru;
 }
 
-void searchRuang(const unordered_map<int, Jadwal>& mapJadwal, string ruang) {
+void searchRuang(const unordered_map<int, Jadwal>& mapJadwal, const string& ruang) {
     bool found = false;
     
     for(const auto& pair : mapJadwal) {
@@ -66,22 +65,25 @@ void searchRuang(const unordered_map<int, Jadwal>& mapJadwal, string ruang) {
     }
 }
 
-void updateJadwal(unordered_map<int, Jadwal>& mapJadwal, int id, string namaBaru, int mulaiBaru, int selesaiBaru){
-    if(mapJadwal.find(id) != mapJadwal.end()){
-        string ruang = mapJadwal[id].idRuangan;
-        string tanggal = mapJadwal[id].tanggal;
+void updateJadwal(unordered_map<int, Jadwal>& mapJadwal, int id, const string& namaBaru, int mulaiBaru, int selesaiBaru){
+    auto it = mapJadwal.find(id);
+    if(it != mapJadwal.end()){
+        Jadwal& target = it->second; 
+        
+        int oldMulai = target.waktuMulai;
+        int oldSelesai = target.waktuSelesai;
+        
+        target.waktuMulai = -1;
+        target.waktuSelesai = -1;
 
-        Jadwal backup = mapJadwal[id];
-        mapJadwal.erase(id);
-
-        if(cekKonflik(mapJadwal, ruang, tanggal, mulaiBaru, selesaiBaru)) {
+        if(cekKonflik(mapJadwal, target.idRuangan, target.tanggal, mulaiBaru, selesaiBaru)) {
             cout << "Update gagal! Waktu bentrok dengan jadwal lain.\n";
-            mapJadwal[id] = backup;
+            target.waktuMulai = oldMulai;
+            target.waktuSelesai = oldSelesai;
         } else {
-            backup.namaKegiatan = namaBaru;
-            backup.waktuMulai = mulaiBaru;
-            backup.waktuSelesai = selesaiBaru;
-            mapJadwal[id] = backup;
+            target.namaKegiatan = namaBaru;
+            target.waktuMulai = mulaiBaru;
+            target.waktuSelesai = selesaiBaru;
             cout << "Jadwal berhasil diupdate!\n";
         }
     } else {
@@ -90,7 +92,6 @@ void updateJadwal(unordered_map<int, Jadwal>& mapJadwal, int id, string namaBaru
 }
 
 void deleteJadwal(unordered_map<int, Jadwal>& mapJadwal, int id){
-    
     if(mapJadwal.erase(id)) {
         cout << "Jadwal berhasil dihapus\n";
     } else {
@@ -141,6 +142,7 @@ void ambilFile(unordered_map<int, Jadwal>& mapJadwal){
 
 int main(){
     unordered_map<int, Jadwal> mapJadwal;
+    mapJadwal.reserve(2048); 
     
     ambilFile(mapJadwal);
 
@@ -181,7 +183,6 @@ int main(){
             auto start_op = chrono::high_resolution_clock::now();
 
             insertJadwal(mapJadwal, id, nama, ruang, mulai, selesai, tanggal, status);
-            simpanFile(mapJadwal);
 
             auto end_op = chrono::high_resolution_clock::now();
             auto duration = chrono::duration_cast<chrono::microseconds>(end_op - start_op).count();
@@ -221,7 +222,6 @@ int main(){
             auto start_op = chrono::high_resolution_clock::now();
 
             updateJadwal(mapJadwal, id, namaBaru, mulaiBaru, selesaiBaru);
-            simpanFile(mapJadwal);
 
             auto end_op = chrono::high_resolution_clock::now();
             auto duration = chrono::duration_cast<chrono::microseconds>(end_op - start_op).count();
@@ -232,6 +232,25 @@ int main(){
         else if(pilihan == 4){
             int id;
             cout << "ID JADWAL YANG INGIN DIHAPUS: ";
+            cin >> id;
+
+            auto start_op = chrono::high_resolution_clock::now();
+
+            deleteJadwal(mapJadwal, id);
+
+            auto end_op = chrono::high_resolution_clock::now();
+            auto duration = chrono::duration_cast<chrono::microseconds>(end_op - start_op).count();
+            
+            cout << "Waktu Eksekusi Hapus: " << duration << " us\n";
+            totalWaktu += duration;
+        }
+    } while(pilihan != 5);
+
+    simpanFile(mapJadwal);
+    cout << "\nTotal Waktu Algoritma Aktif: " << totalWaktu << " us\n";
+    
+    return 0;
+}
             cin >> id;
 
             auto start_op = chrono::high_resolution_clock::now();
