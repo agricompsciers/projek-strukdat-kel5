@@ -250,23 +250,4 @@ int main(){
     cout << "\nTotal Waktu Algoritma Aktif: " << totalWaktu << " us\n";
     
     return 0;
-}
-            cin >> id;
-
-            auto start_op = chrono::high_resolution_clock::now();
-
-            deleteJadwal(mapJadwal, id);
-            simpanFile(mapJadwal);
-
-            auto end_op = chrono::high_resolution_clock::now();
-            auto duration = chrono::duration_cast<chrono::microseconds>(end_op - start_op).count();
-            
-            cout << "Waktu Eksekusi Hapus: " << duration << " us\n";
-            totalWaktu += duration;
-        }
-    } while(pilihan != 5);
-
-    cout << "\nTotal Waktu Algoritma Aktif: " << totalWaktu << " us\n";
-    
-    return 0;
-}
+}  
